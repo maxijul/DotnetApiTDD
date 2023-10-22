@@ -1,45 +1,32 @@
-﻿using CloudCustomers.API.Models;
+﻿using CloudCustomers.API.Config;
+using CloudCustomers.API.Models;
+using Microsoft.Extensions.Options;
 
 namespace CloudCustomers.API.Services
 {
     public class UserService : IUserService
     {
-        public UserService()
-        {
+        private readonly HttpClient _httpClient;
+        private readonly IOptions<UserApiOptions> _apiConfig;
 
+        public UserService(HttpClient httpClient, IOptions<UserApiOptions> apiConfig)
+        {
+            _httpClient = httpClient;
+            _apiConfig = apiConfig;
         }
 
         public async Task<List<User>> GetAllUsers()
         {
-            var users = new List<User>()
-            {
-                new User()
-                {
-                    Id = 1,
-                    Name = "Gerard",
-                    Email = "Gerard@email.com",
-                    Address = new Address()
-                    {
-                        Street = "Street 1",
-                        City = "City 1",
-                        PostalCode = "PostalCode 1"
-                    }
-                },
-                new User()
-                {
-                    Id = 2,
-                    Name = "John",
-                    Email = "John@email.com",
-                    Address = new Address()
-                    {
-                        Street = "Street 2",
-                        City = "City 2",
-                        PostalCode = "PostalCode 2"
-                    }
-                }
-            };
+            var userResponse = await _httpClient.GetAsync(_apiConfig.Value.Endpoint);
 
-            return users;
+            if (userResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return new List<User>();
+            }
+
+            var responseContent = userResponse.Content;
+            var allUsers = await responseContent.ReadFromJsonAsync<List<User>>();
+            return allUsers.ToList();
         }
     }
 
